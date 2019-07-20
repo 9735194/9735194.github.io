@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+#video_camera {
+  /* Mirror video */
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
+  background-color:black;
+  position: relative;
+  top: 0;
+  left: 0;
+  z-index:0;
+}
+
+#canvas_current,#canvas_previous, #canvas_difference, #canvas_blend {
+    -webkit-transform: scaleX(-1);
+    transform: scaleX(-1);
+    width: 320px;
+    height: 240px; 
+    image-rendering: pixelated;
+    background-color: gray;
+    padding: 0px;
+
+}
+
+#canvas_video_overlay {
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);  
+  z-index:1;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#canvas_sensors {
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);  
+  z-index:2;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+
+</style>    
+
+</head>
+<body>
+    <div id="container">
+        <h1>Motion Sensor Test</h1>
+        <p>
+            <button id="openCamera">Open camera</button>
+            <button id="closeCamera">Close camera</button>
+            <button id="startRecording">Start Recording</button>     
+            <button id="stopRecording">Stop Recording</button>                            
+            <button id="takeSnapshot">Take Background Canvas</button>
+            <button id="changeSensitivity">Change Sensitivity To:</button>
+            <input type=text id=sensitivity value=16>
+        </p>
+        <div id='field' style='position:relative'>
+            <video id="video_camera" autoplay playsinline  width='320' height='240'></video>
+            <canvas id='canvas_video_overlay'  width='320' height='240' ></canvas>
+            <canvas id='canvas_sensors'  width='320' height='240' ></canvas>   
+            <canvas id='canvas_current'  width='32' height='24' ></canvas>
+            <canvas id='canvas_previous'  width='32' height='24' ></canvas>    
+            <canvas id='canvas_difference'  width='32' height='24' ></canvas>                     
+        </div>
+    </div>
+    <script src="tester.js"></script>    
+</body>
+</html>
