@@ -1,28 +1,27 @@
 // Dimensions
-var iVideoWidth = 320;
-var iVideoHeight = 240;
-var iGridWidth = 32;
-var iGridHeight = 24;
+var video_width = 320;
+var video_height = 240;
+var grid_width = 32;
+var grid_height = 24;
+var cell_size = 10; // Initialised after webcam is turned on
 
 // Intervals
-var iDiffIntervalMs = 50;
+var snapshot_interval = 50;
 
 // Video
-var vWebcam = document.getElementById('video_camera');
+var video_camera = document.getElementById('video_camera');
 
 // Canvas
-var cOverlay 	= document.getElementById('canvas_video_overlay');
-var cCurrent 	= document.getElementById('canvas_current');
-var cPrevious 	= document.getElementById('canvas_previous');
-var cDiff 		= document.getElementById('canvas_difference');		
-var cCensors	= document.getElementById('canvas_sensors');		
+var canvas_overlay 	= document.getElementById('canvas_video_overlay');
+var canvas_snapshot = document.getElementById('canvas_current');
+var canvas_blend 	= document.getElementById('canvas_blend');		
+var canvas_censors	= document.getElementById('canvas_sensors');		
 
 // Contexts
-var xOverlay 	= cOverlay.getContext('2d');
-var xCurrent 	= cCurrent.getContext('2d');
-var xPrevious	= cPrevious.getContext('2d');
-var xDiff 		= cDiff.getContext('2d');
-var xCensors	= cCensors.getContext('2d');
+var context_overlay 	= canvas_overlay.getContext('2d');
+var context_snapshot 	= canvas_snapshot.getContext('2d');
+var context_blend 		= canvas_blend.getContext('2d');
+var context_censors		= canvas_censors.getContext('2d');
 
 // Timer
 var tDiffInterval = null; 
@@ -58,28 +57,19 @@ var sensor2 = {
 */
 
 
-function diff() {
-	// Take a snapshot
-	xCurrent.drawImage(vWebcam, 0, 0, iGridWidth, iGridHeight);
-
-	// Copy previous frame onto diff canvas
-	xDiff.globalCompositeOperation = 'copy';
-	xDiff.drawImage(cPrevious, 0, 0, iGridWidth, iGridHeight);
-
-	// Perform the diff 
-	xDiff.globalCompositeOperation = 'difference';
-	xDiff.drawImage(cCurrent, 0, 0, iGridWidth, iGridHeight);
-	var d = xDiff.getImageData(0, 0, iGridWidth, iGridHeight);
-	
-	checkSensor(d, sensor);
-
-	// Save for next iteration
-	xPrevious.drawImage(cCurrent, 0, 0, iGridWidth, iGridHeight);
+function blend() {
+	context_blend.globalCompositeOperation = 'copy';
+	context_blend.drawImage(canvas_snapshot, 0, 0, grid_width, grid_height); // Prev snapshot before update
+	context_snapshot.drawImage(video_camera, 0, 0, grid_width, grid_height); // Take new snapshot (update)
+	context_blend.globalCompositeOperation = 'difference';
+	context_blend.drawImage(canvas_snapshot, 0, 0, grid_width, grid_height); // Diff prev and new
+	var d = context_blend.getImageData(0, 0, grid_width, grid_height);	// Get raw data
+	checkSensor(d, sensor);	// Analyse raw data for sensor bits
 }
 
 
 function moveSensor(s) {
-	clearSensor(xCensors, s);
+	clearSensor(context_censors, s);
 
 	// Choose randomly between those positions
 	var selection = Math.round(Math.random() *3);
@@ -91,7 +81,7 @@ function moveSensor(s) {
 		case 3: s.x=27; s.y=12; s.sound ='punch2'; break;		
 	}
 
-	drawSensor(xCensors, s);
+	drawSensor(context_censors, s);
 }
 
 function clearSensor(ctx, s) {
@@ -108,7 +98,7 @@ function checkSensor(d, s) {
 
 	for(var y = s.y; y <= ymax; y++) {
 		for(var x = s.x; x <= xmax; x++) {
-			index = (x + (y * iGridWidth)) * 4;
+			index = (x + (y * grid_width)) * 4;
 			//console.log(x, y, index);
 			if(	d.data[index] > s.ct ||  
 				d.data[index + 1] > s.ct || 
@@ -139,11 +129,11 @@ function drawGrid(ctx, color) {
 	var gridColor = color || "#000";
 	var width = ctx.canvas.width;
 	var height = ctx.canvas.height;
-	for (var x = 0.5; x < width; x += 10) {
+	for (var x = 0.5; x < width; x += cell_size) {
 	  ctx.moveTo(x, 0);
 	  ctx.lineTo(x, height);
 	}
-	for (var y = 0.5; y < height; y += 10) {
+	for (var y = 0.5; y < height; y += cell_size) {
 	  ctx.moveTo(0, y);
 	  ctx.lineTo(width, y);
 	}
@@ -154,19 +144,19 @@ function drawGrid(ctx, color) {
 function drawSensor(ctx, sensor) {
 	// Draw on the overlay canvas a pixel of a certain colour based on the sensor position
 	// Grid is 32x24, step by 10 to make 320x240
-	var cs = 10; // cell size
+
 	ctx.globalAlpha = 0.5
 	ctx.fillStyle = sensor.color;
-	ctx.fillRect(sensor.x * cs, sensor.y * cs, sensor.w * cs, sensor.h * cs);
+	ctx.fillRect(sensor.x * cell_size, sensor.y * cell_size, sensor.w * cell_size, sensor.h * cell_size);
 }
 
 
 
 function startRecording () {
 	if(currentlyRecording) return;
-	xPrevious.drawImage(vWebcam, 0, 0, iGridWidth, iGridHeight);
+	context_snapshot.drawImage(video_camera, 0, 0, grid_width, grid_height);
 
-	tDiffInterval = setInterval(diff, iDiffIntervalMs);
+	tDiffInterval = setInterval(blend, snapshot_interval);
 	currentlyRecording = true;
 }
 
@@ -178,30 +168,45 @@ function stopRecording() {
 
 
 function startVideo() {
-	requestWebcam(); 
+	requestWebcam(); // ASYNC!!!!
+
+	// Adjust canvas overlay
+	// FIXME: This doesn't work. The canvas_overlay needs to be sized once we have a webcam feed. The webcam feed is async
 }
+
+function setupCanvas() {
+	canvas_overlay.style.width = video_camera.offsetWidth;
+	canvas_overlay.style.height = video_camera.offsetHeight;
+	console.log(video_camera.offsetWidth, video_camera.offsetHeight);
+	console.log(canvas_overlay.style);
+
+	drawGrid(context_overlay);
+	drawSensor(context_censors, sensor);
+
+
+
+}
+
 
 function stopVideo() {
   try {
-      var track = vWebcam.srcObject.getTracks()[0]; // Video track
+      var track = video_camera.srcObject.getTracks()[0]; // Video track
       track.stop();
   } catch (e) {
     handleError(e);
   }
 }
 
-function takeSnapshot() {
 
-	
-}
 
 async function requestWebcam() {
 	var constraints = {
 		audio: false,
-		video: { width: iVideoWidth, height: iVideoHeight }
+		video: { width: video_width, height: video_height }
 	};	
 	try {
-		vWebcam.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
+		video_camera.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
+		setupCanvas();
 	} catch (e) {
  		console.log(e);
 
@@ -225,9 +230,8 @@ document.querySelector('#changeSensitivity').addEventListener('click', changeSen
 var audio_tiger = new Audio("media/sound/Tiger_Uppercut.mp3");
 var audio_punch1 = new Audio("media/sound/punch3.mp3");
 var audio_punch2 = new Audio("media/sound/punch2.mp3");
-drawGrid(xOverlay);
-drawSensor(xCensors, sensor);
-//drawSensor(xOverlay, sensor2);
+
+//drawSensor(context_overlay, sensor2);
 
 
 
