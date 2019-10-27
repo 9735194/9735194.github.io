@@ -1,6 +1,6 @@
 // Dimensions
-var iVideoWidth = 320;
-var iVideoHeight = 240;
+var iVideoWidth = 640;
+var iVideoHeight = 480;
 var iGridWidth = 32;
 var iGridHeight = 24;
 
@@ -11,21 +11,23 @@ var iDiffIntervalMs = 50;
 var vWebcam = document.getElementById('video_camera');
 
 // Canvas
-var cOverlay 	= document.getElementById('canvas_video_overlay');
+var cGrid 	= document.getElementById('canvas_grid');
 var cCurrent 	= document.getElementById('canvas_current');
 var cPrevious 	= document.getElementById('canvas_previous');
-var cDiff 		= document.getElementById('canvas_difference');		
-var cCensors	= document.getElementById('canvas_sensors');		
+var cDiff 		= document.getElementById('canvas_difference');
+var cCensors	= document.getElementById('canvas_sensors');
+var cMotion	= document.getElementById('canvas_motion');
 
 // Contexts
-var xOverlay 	= cOverlay.getContext('2d');
+var xGrid 	= cGrid.getContext('2d');
 var xCurrent 	= cCurrent.getContext('2d');
 var xPrevious	= cPrevious.getContext('2d');
 var xDiff 		= cDiff.getContext('2d');
 var xCensors	= cCensors.getContext('2d');
+var xMotion	= cMotion.getContext('2d');
 
 // Timer
-var tDiffInterval = null; 
+var tDiffInterval = null;
 
 // Toggles
 var currentlyRecording = false;
@@ -37,7 +39,7 @@ var sensor = {
 	y: 0,
 	w: 5,
 	h: 5,
-	color: 'lightgreen',
+	color: 'blue',
 	alpha: 0.5,
 	ct: 16, // Cell Threshold
 	st: 1, 	// Sensor Threshold (number of cells that must be on)
@@ -66,23 +68,44 @@ function diff() {
 	xDiff.globalCompositeOperation = 'copy';
 	xDiff.drawImage(cPrevious, 0, 0, iGridWidth, iGridHeight);
 
-	// Perform the diff 
+	// Perform the diff
 	xDiff.globalCompositeOperation = 'difference';
 	xDiff.drawImage(cCurrent, 0, 0, iGridWidth, iGridHeight);
 	var d = xDiff.getImageData(0, 0, iGridWidth, iGridHeight);
-	
-	checkSensor(d, sensor);
-//	checkSensor(d, sensor2);
 
-	// Attempt at blending
-	//var diffImageData = xDiff.getImageData(0, 0, iGridWidth, iGridHeight);
-	//binaryThreshold(diffImageData, 32);
-	//xBlend.putImageData(diffImageData, 0, 0);
-	// https://github.com/jasonmayes/JS-Motion-Detection/blob/master/js/MotionDetector.js
-	//alphaBlend(xCurrent, xPrevious, xBlend, s);
+	checkSensor(d, sensor);
+	drawMotion(d);
 
 	// Save for next iteration
 	xPrevious.drawImage(cCurrent, 0, 0, iGridWidth, iGridHeight);
+}
+
+function drawMotion(d) {
+	var color = "red";
+	var alpha = 0.5;
+	var threshold = 16;
+	xMotion.clearRect(0, 0, 32, 24);
+
+	for (var x = 0; x < iGridWidth; x++) {
+		for (var y = 0; y < iGridHeight; y++) {
+			 // If motion detected
+			 index = (x + (y * iGridWidth)) * 4;
+			 if( d.data[index] > threshold || d.data[index + 1] > threshold || d.data[index + 2] > threshold) {
+				 			 colorGridCell(xMotion, x,y, color, alpha);
+			 //	console.log(d.data[index], d.data[index + 1], d.data[index + 2], ">", s.ct, index);
+			 }
+		}
+	}
+
+
+
+
+}
+function colorGridCell(ctx, x, y, color,alpha) {
+	ctx.fillStyle = color;
+	ctx.globalAlpha = alpha;
+	ctx.clearRect(x, y, 1, 1);
+	ctx.fillRect(x, y, 1, 1);
 }
 
 
@@ -96,16 +119,22 @@ function moveSensor(s) {
 		case 0: s.x=0; s.y=0; break;
 		case 1: s.x=27; s.y=0; s.sound ='punch1'; break;
 		case 2: s.x=0; s.y=12; break;
-		case 3: s.x=27; s.y=12; s.sound ='punch2'; break;		
+		case 3: s.x=27; s.y=12; s.sound ='punch2'; break;
 	}
 
 	drawSensor(xCensors, s);
 }
-
 function clearSensor(ctx, s) {
-	var cs = 10;
-	ctx.clearRect(s.x * cs, s.y * cs, s.w * cs, s.h * cs);
+	ctx.clearRect(s.x, s.y, s.w, s.h);
 }
+function drawSensor(ctx, sensor) {
+	// Draw on the overlay canvas a pixel of a certain colour based on the sensor position
+	// Grid is 32x24,
+	ctx.globalAlpha = sensor.alpha;
+	ctx.fillStyle = sensor.color;
+	ctx.fillRect(sensor.x, sensor.y, sensor.w, sensor.h);
+}
+
 
 function checkSensor(d, s) {
 	// Remember, each cells has R,G,B,A hence the * 4
@@ -118,12 +147,12 @@ function checkSensor(d, s) {
 		for(var x = s.x; x <= xmax; x++) {
 			index = (x + (y * iGridWidth)) * 4;
 			//console.log(x, y, index);
-			if(	d.data[index] > s.ct ||  
-				d.data[index + 1] > s.ct || 
+			if(	d.data[index] > s.ct ||
+				d.data[index + 1] > s.ct ||
 				d.data[index + 2] > s.ct) {
 				count++;
 			//	console.log(d.data[index], d.data[index + 1], d.data[index + 2], ">", s.ct, index);
-			}	
+			}
 		}
 	}
 
@@ -141,7 +170,11 @@ function checkSensor(d, s) {
 
 
 
-
+//==============================================================================
+//
+// Draw Grid
+//
+//==============================================================================
 
 function drawGrid(ctx, color) {
 	var gridColor = color || "#000";
@@ -159,16 +192,13 @@ function drawGrid(ctx, color) {
 	ctx.stroke();
 }
 
-function drawSensor(ctx, sensor) {
-	// Draw on the overlay canvas a pixel of a certain colour based on the sensor position
-	// Grid is 32x24, step by 10 to make 320x240
-	var cs = 10; // cell size
-	ctx.globalAlpha = 0.5
-	ctx.fillStyle = sensor.color;
-	ctx.fillRect(sensor.x * cs, sensor.y * cs, sensor.w * cs, sensor.h * cs);
-}
 
 
+//==============================================================================
+//
+// Buttons
+//
+//==============================================================================
 
 function startRecording () {
 	if(currentlyRecording) return;
@@ -179,14 +209,14 @@ function startRecording () {
 }
 
 function stopRecording() {
-	if(!currentlyRecording) return;	
+	if(!currentlyRecording) return;
 	clearInterval(tDiffInterval);
 	currentlyRecording = false;
 }
 
 
 function startVideo() {
-	requestWebcam(); 
+	requestWebcam();
 }
 
 function stopVideo() {
@@ -200,14 +230,14 @@ function stopVideo() {
 
 function takeSnapshot() {
 
-	
+
 }
 
 async function requestWebcam() {
 	var constraints = {
 		audio: false,
 		video: { width: iVideoWidth, height: iVideoHeight }
-	};	
+	};
 	try {
 		vWebcam.srcObject = await navigator.mediaDevices.getUserMedia(constraints);
 	} catch (e) {
@@ -233,11 +263,7 @@ document.querySelector('#changeSensitivity').addEventListener('click', changeSen
 var audio_tiger = new Audio("media/sound/Tiger_Uppercut.mp3");
 var audio_punch1 = new Audio("media/sound/punch3.mp3");
 var audio_punch2 = new Audio("media/sound/punch2.mp3");
-drawGrid(xOverlay);
+drawGrid(xGrid);
 drawSensor(xCensors, sensor);
+//colorGridCell(xMotion, 1, 2, "red", 0.5);
 //drawSensor(xOverlay, sensor2);
-
-
-
-
-
