@@ -1,14 +1,70 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html>
+
+<head>
+
+<link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
+
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Arvo&display=swap" rel="stylesheet"> 
+<style>
+h1 {
+margin: auto;
+}
+
+body {/* https://www.w3schools.com/colors/colors_palettes.asp */
+font-family: 'Arvo', serif;
+        color: #7e4a35;
+        background-color: #cab577;
+}
+.clickme {
+    padding: 8px 20px;
+    text-decoration:none;
+    font-weight:bold;
+    border-radius:5px;
+    border: 0.2em solid #7e4a35;
+    color: #7e4a35;
+    cursor:pointer;
+}
+
+</style>
+</head>
+
 <body>
+<center>
+<h1>Press PLAY <i class="fas fa-volume-up"></i></h1>
+<br><br>
+<p>
+<!-- <i class="fas fa-play"></i>  -->
 
-<h1>Press PLAY</h1>
-
-<audio controls autoplay>
-  <source src="scorpion-get_over_here.mp3" type="audio/mpeg">
+<audio controls="controls" autoplay="autoplay">
+  <source src="directions_files/scorpion-get_over_here.mp3" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
+</p>
+
 <br><br>
-<a href='http://maps.apple.com/?saddr=16+poets+road&daddr=north+hobart'>Next Location</a>
-</body>
-</html>
+<!-- Next Location -->
+<p>
+<!-- <a href="http://maps.apple.com/?saddr=16+poets+road&amp;daddr=north+hobart">Next Location</a> -->
+<a href="http://maps.apple.com/?daddr=north+hobart" class="clickme">Next Location
+<i class="fas fa-book-dead"></i>
+</a>
+</p>
+
+<br><br>
+
+<!-- Footer -->
+<p>
+<!-- https://fontawesome.com/v5.15/icons/arrow-up?style=solid -->
+</p>
+<p>
+<small>
+City of Hobart 2021. Disclaimer. Location ID: 4563
+</small>
+</p>
+
+</center>
+</body></html>
